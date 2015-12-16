@@ -1,0 +1,36 @@
+proxy_redirect off;
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=my-cache:8m 
+max_size=1000m inactive=600m;
+  proxy_temp_path /var/cache/tmp;
+
+server {
+	listen 80; listen 443 ssl;
+	index index.php index.html index.htm index.nginx-debian.html;
+	server_name s1.local.com www.s1.local.com;
+        ssl_certificate /etc/nginx/ssl/nginx.crt;
+        ssl_certificate_key /etc/nginx/ssl/nginx.key;               
+       root /var/www/html/hottiehunter/public/;
+
+       if ($http_host != "s1.local.com") {
+                 rewrite ^ http://s1.local.com$request_uri permanent;
+       }
+       index index.php index.html;
+location /{
+    proxy_pass http://192.168.0.239:8080;
+    proxy_cache my-cache;
+    proxy_cache_valid 200 302 60m;
+    proxy_cache_valid 404 1m;
+  }
+
+       location ~* .(?:manifest|appcache|html?|xml|json)$ {
+        expires -1;
+        }
+
+	location ~ /\.ht {
+		deny all;
+	}
+}
+
